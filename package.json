@@ -11,5 +11,8 @@
   "dependencies": {
     "@slack/bolt": "^3.17.0",
     "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.1.1"
   }
 }
