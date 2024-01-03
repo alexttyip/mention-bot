@@ -101,7 +101,7 @@ const pickUser = async (say, channel, triggeringUser, message) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `<@${pickedUser.user}> you've been picked by <@${triggeringUser}>: ${message}`,
+            text: `<@${pickedUser.user}> you've been picked by <@${triggeringUser}>: *${message}*`,
           },
           accessory: {
             type: "button",
@@ -110,6 +110,7 @@ const pickUser = async (say, channel, triggeringUser, message) => {
               text: ":recycle: Re-roll",
               emoji: true,
             },
+            value: message,
             action_id: "re_roll_button_click",
           },
         },
@@ -137,7 +138,6 @@ app.event("app_mention", async ({ event, say, context }) => {
   const { botUserId } = context;
 
   const message = event.text;
-  console.log(message);
 
   if (!message.startsWith(`<@${botUserId}>`)) {
     return throwError(say);
@@ -145,16 +145,21 @@ app.event("app_mention", async ({ event, say, context }) => {
 
   const firstSpaceIdx = message.indexOf(" ");
 
-  console.log(context);
-
-  await pickUser(say, event.channel, event.user, message.slice(firstSpaceIdx).trim());
+  await pickUser(
+    say,
+    event.channel,
+    event.user,
+    message.slice(firstSpaceIdx).trim(),
+  );
 });
 
 app.action("re_roll_button_click", async ({ ack, body, say }) => {
   // Acknowledge the action
   await ack();
 
-  await pickUser(say, body.channel.id, body.user.id);
+  const message = body.actions[0].value;
+
+  await pickUser(say, body.channel.id, body.user.id, message);
 });
 
 (async () => {
