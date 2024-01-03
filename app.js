@@ -12,37 +12,6 @@ const app = new App({
   port: process.env.PORT || 3000,
 });
 
-// // Listens to incoming messages that contain "hello"
-// app.message('hello', async ({ message, say }) => {
-//     // say() sends a message to the channel where the event was triggered
-//     await say({
-//         blocks: [
-//             {
-//                 "type": "section",
-//                 "text": {
-//                     "type": "mrkdwn",
-//                     "text": `Hey there <@${message.user}>!`
-//                 },
-//                 "accessory": {
-//                     "type": "button",
-//                     "text": {
-//                         "type": "plain_text",
-//                         "text": "Click Me"
-//                     },
-//                     "action_id": "button_click"
-//                 }
-//             }
-//         ],
-//         text: `Hey there <@${message.user}>!`
-//     });
-// });
-//
-// app.action('button_click', async ({ body, ack, say }) => {
-//     // Acknowledge the action
-//     await ack();
-//     await say(`<@${body.user.id}> clicked the button`);
-// });
-
 const getGenerateInteger = async (min, max, n = 1) => {
   const body = {
     jsonrpc: "2.0",
@@ -145,6 +114,10 @@ app.event("app_mention", async ({ event, say, context }) => {
 
   const firstSpaceIdx = message.indexOf(" ");
 
+  if (firstSpaceIdx === -1) {
+    return throwError(say);
+  }
+
   await pickUser(
     say,
     event.channel,
@@ -157,9 +130,27 @@ app.action("re_roll_button_click", async ({ ack, body, say }) => {
   // Acknowledge the action
   await ack();
 
+  const channel = body.channel.id;
   const message = body.actions[0].value;
+  const originalMessageTimestamp = body.message.ts;
+  const originalBlock = body.message.blocks[0];
 
-  await pickUser(say, body.channel.id, body.user.id, message);
+  await app.client.chat.update({
+    channel,
+    ts: originalMessageTimestamp,
+    blocks: [
+      {
+        ...originalBlock,
+        text: {
+          type: "mrkdwn",
+          text: `:no-cross: ~${originalBlock.text.text}~ :no-cross:`,
+        },
+        accessory: undefined,
+      },
+    ],
+  });
+
+  await pickUser(say, channel, body.user.id, message);
 });
 
 (async () => {
