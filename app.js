@@ -82,17 +82,16 @@ app.event("app_mention", async ({ event, context, client, say }) => {
         user: member,
       })
       .then((info) => ({
-        // id: info.user.id,
-        name: info.user.name,
+        user: info.user.id,
         isBot: info.user.is_bot,
       })),
   );
 
   let infos = await Promise.all(infoPromises);
-  infos = infos.filter(({ isBot }) => !isBot);
+  // Exclude bots and the picker
+  infos = infos.filter(({ user, isBot }) => !isBot && event.user !== user);
 
   const randomNumber = await getGenerateInteger(0, infos.length - 1);
-
   const pickedUser = infos[randomNumber];
 
   try {
@@ -102,7 +101,7 @@ app.event("app_mention", async ({ event, context, client, say }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Thanks for the mention <@${event.user}>! Here's a random user <@${pickedUser.name}>`,
+            text: `Thanks for the mention <@${event.user}>! Here's a random user <@${pickedUser.user}>`,
           },
           accessory: {
             type: "button",
