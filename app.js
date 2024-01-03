@@ -43,10 +43,35 @@ const app = new App({
 //     await say(`<@${body.user.id}> clicked the button`);
 // });
 
+const getGenerateIntegerParams = (min, max, n = 1) => ({
+  jsonrpc: "2.0",
+  method: "generateIntegers",
+  params: {
+    apiKey: "4677204d-8290-4fa8-8c22-c4b4866e9021",
+    n,
+    min,
+    max,
+  },
+  id: 69,
+});
+
 // subscribe to 'app_mention' event in your App config
 // need app_mentions:read and chat:write scopes
 app.event("app_mention", async ({ event, context, client, say }) => {
   console.log({ event });
+
+  const body = getGenerateIntegerParams(0, 10, 10);
+
+  const res = await fetch("https://api.random.org/json-rpc/4/invoke", {
+    method: "post",
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const json = await res.json();
+  const randomNumber = json.result.random.data[0];
+
+  console.log(json.result.random.data);
 
   try {
     await say({
@@ -55,7 +80,7 @@ app.event("app_mention", async ({ event, context, client, say }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Thanks for the mention <@${event.user}>! Here's a button`,
+            text: `Thanks for the mention <@${event.user}>! Here's a random number ${randomNumber}`,
           },
           accessory: {
             type: "button",
