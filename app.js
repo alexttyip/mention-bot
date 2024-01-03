@@ -71,7 +71,7 @@ const getGenerateInteger = async (min, max, n = 1) => {
   return json.result.random.data[0];
 };
 
-const pickUser = async (channel, triggeringUser, say) => {
+const pickUser = async (say, channel, triggeringUser, message) => {
   const members = await app.client.conversations
     .members({ channel })
     .then((obj) => obj.members);
@@ -101,7 +101,7 @@ const pickUser = async (channel, triggeringUser, say) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Thanks for the mention <@${triggeringUser}>! Here's a random user <@${pickedUser.user}>`,
+            text: `<@${pickedUser.user}> you've been picked by <@${triggeringUser}>: ${message}`,
           },
           accessory: {
             type: "button",
@@ -121,17 +121,40 @@ const pickUser = async (channel, triggeringUser, say) => {
   }
 };
 
+const throwError = async (say) => {
+  try {
+    await say({
+      text: "Oi use me properly",
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 // subscribe to 'app_mention' event in your App config
 // need app_mentions:read and chat:write scopes
-app.event("app_mention", async ({ event, say }) => {
-  await pickUser(event.channel, event.user, say);
+app.event("app_mention", async ({ event, say, context }) => {
+  const { botUserId } = context;
+
+  const message = event.text;
+  console.log(message);
+
+  if (!message.startsWith(`<@${botUserId}>`)) {
+    return throwError(say);
+  }
+
+  const firstSpaceIdx = message.indexOf(" ");
+
+  console.log(context);
+
+  await pickUser(say, event.channel, event.user, message.slice(firstSpaceIdx).trim());
 });
 
 app.action("re_roll_button_click", async ({ ack, body, say }) => {
   // Acknowledge the action
   await ack();
 
-  await pickUser(body.channel.id, body.user.id, say);
+  await pickUser(say, body.channel.id, body.user.id);
 });
 
 (async () => {
