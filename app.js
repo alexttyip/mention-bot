@@ -43,24 +43,18 @@ const app = new App({
 //     await say(`<@${body.user.id}> clicked the button`);
 // });
 
-const getGenerateIntegerParams = (min, max, n = 1) => ({
-  jsonrpc: "2.0",
-  method: "generateIntegers",
-  params: {
-    apiKey: "4677204d-8290-4fa8-8c22-c4b4866e9021",
-    n,
-    min,
-    max,
-  },
-  id: 69,
-});
-
-// subscribe to 'app_mention' event in your App config
-// need app_mentions:read and chat:write scopes
-app.event("app_mention", async ({ event, context, client, say }) => {
-  console.log({ event });
-
-  const body = getGenerateIntegerParams(0, 10, 10);
+const getGenerateInteger = async (min, max, n = 1) => {
+  const body = {
+    jsonrpc: "2.0",
+    method: "generateIntegers",
+    params: {
+      apiKey: "4677204d-8290-4fa8-8c22-c4b4866e9021",
+      n,
+      min,
+      max,
+    },
+    id: 69,
+  };
 
   const res = await fetch("https://api.random.org/json-rpc/4/invoke", {
     method: "post",
@@ -69,9 +63,37 @@ app.event("app_mention", async ({ event, context, client, say }) => {
   });
 
   const json = await res.json();
-  const randomNumber = json.result.random.data[0];
 
-  console.log(json.result.random.data);
+  return json.result.random.data[0];
+};
+
+// subscribe to 'app_mention' event in your App config
+// need app_mentions:read and chat:write scopes
+app.event("app_mention", async ({ event, context, client, say }) => {
+  const members = await app.client.conversations
+    .members({
+      channel: event.channel,
+    })
+    .then((obj) => obj.members);
+
+  const infoPromises = members.map((member) =>
+    app.client.users
+      .info({
+        user: member,
+      })
+      .then((info) => ({
+        // id: info.user.id,
+        name: info.user.name,
+        isBot: info.user.is_bot,
+      })),
+  );
+
+  let infos = await Promise.all(infoPromises);
+  infos = infos.filter(({ isBot }) => !isBot);
+
+  const randomNumber = await getGenerateInteger(0, infos.length - 1);
+
+  const pickedUser = infos[randomNumber];
 
   try {
     await say({
@@ -80,7 +102,7 @@ app.event("app_mention", async ({ event, context, client, say }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Thanks for the mention <@${event.user}>! Here's a random number ${randomNumber}`,
+            text: `Thanks for the mention <@${event.user}>! Here's a random user <@${pickedUser.name}>`,
           },
           accessory: {
             type: "button",
