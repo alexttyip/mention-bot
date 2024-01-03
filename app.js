@@ -64,16 +64,16 @@ const getGenerateInteger = async (min, max, n = 1) => {
 
   const json = await res.json();
 
+  if (json.error) {
+    throw json.error;
+  }
+
   return json.result.random.data[0];
 };
 
-// subscribe to 'app_mention' event in your App config
-// need app_mentions:read and chat:write scopes
-app.event("app_mention", async ({ event, context, client, say }) => {
+const pickUser = async (channel, triggeringUser, say) => {
   const members = await app.client.conversations
-    .members({
-      channel: event.channel,
-    })
+    .members({ channel })
     .then((obj) => obj.members);
 
   const infoPromises = members.map((member) =>
@@ -89,7 +89,7 @@ app.event("app_mention", async ({ event, context, client, say }) => {
 
   let infos = await Promise.all(infoPromises);
   // Exclude bots and the picker
-  infos = infos.filter(({ user, isBot }) => !isBot && event.user !== user);
+  infos = infos.filter(({ user, isBot }) => !isBot && user !== triggeringUser);
 
   const randomNumber = await getGenerateInteger(0, infos.length - 1);
   const pickedUser = infos[randomNumber];
@@ -101,17 +101,16 @@ app.event("app_mention", async ({ event, context, client, say }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `Thanks for the mention <@${event.user}>! Here's a random user <@${pickedUser.user}>`,
+            text: `Thanks for the mention <@${triggeringUser}>! Here's a random user <@${pickedUser.user}>`,
           },
           accessory: {
             type: "button",
             text: {
               type: "plain_text",
-              text: "Button",
+              text: ":recycle: Re-roll",
               emoji: true,
             },
-            value: "click_me_123",
-            action_id: "first_button",
+            action_id: "re_roll_button_click",
           },
         },
       ],
@@ -120,6 +119,19 @@ app.event("app_mention", async ({ event, context, client, say }) => {
   } catch (error) {
     console.error(error);
   }
+};
+
+// subscribe to 'app_mention' event in your App config
+// need app_mentions:read and chat:write scopes
+app.event("app_mention", async ({ event, say }) => {
+  await pickUser(event.channel, event.user, say);
+});
+
+app.action("re_roll_button_click", async ({ ack, body, say }) => {
+  // Acknowledge the action
+  await ack();
+
+  await pickUser(body.channel.id, body.user.id, say);
 });
 
 (async () => {
