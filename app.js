@@ -1,6 +1,11 @@
 require("dotenv").config();
 
-const { App } = require("@slack/bolt");
+const { App, MemoryStore } = require("@slack/bolt");
+
+const store = new MemoryStore();
+
+// console.log("conversation: ", context.conversation);
+// context.updateConversation((context.conversation ?? "") + "1");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -10,6 +15,7 @@ const app = new App({
   // Socket Mode doesn't listen on a port, but in case you want your app to respond to OAuth,
   // you still need to listen on some port!
   port: process.env.PORT || 3000,
+  convoStore: store,
 });
 
 const getGenerateInteger = async (min, max, n = 1) => {
