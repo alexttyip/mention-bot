@@ -1,6 +1,5 @@
-require("dotenv").config();
-
-const { App, MemoryStore } = require("@slack/bolt");
+import "dotenv/config";
+import { App, MemoryStore, SayFn } from "@slack/bolt";
 
 const store = new MemoryStore();
 
@@ -12,13 +11,10 @@ const app = new App({
   signingSecret: process.env.SLACK_SIGNING_SECRET,
   socketMode: true,
   appToken: process.env.SLACK_APP_TOKEN,
-  // Socket Mode doesn't listen on a port, but in case you want your app to respond to OAuth,
-  // you still need to listen on some port!
-  port: process.env.PORT || 3000,
   convoStore: store,
 });
 
-const getGenerateInteger = async (min, max, n = 1) => {
+const getGenerateInteger = async (min: number, max: number, n = 1) => {
   const body = {
     jsonrpc: "2.0",
     method: "generateIntegers",
@@ -37,7 +33,10 @@ const getGenerateInteger = async (min, max, n = 1) => {
     headers: { "Content-Type": "application/json" },
   });
 
-  const json = await res.json();
+  const json = (await res.json()) as {
+    result: { random: { data: number[] } };
+    error?: { message: string };
+  };
 
   if (json.error) {
     throw json.error;
@@ -46,10 +45,17 @@ const getGenerateInteger = async (min, max, n = 1) => {
   return json.result.random.data[0];
 };
 
-const pickUser = async (say, channel,ts, thread_ts, triggeringUser, message) => {
-  const members = await app.client.conversations
-    .members({ channel })
-    .then((obj) => obj.members);
+const pickUser = async (
+  say: SayFn,
+  channel: string,
+  ts: string | undefined,
+  thread_ts: string | undefined,
+  triggeringUser: string,
+) => {
+  const members =
+    (await app.client.conversations
+      .members({ channel })
+      .then((obj) => obj.members)) ?? [];
 
   const infoPromises = members.map((member) =>
     app.client.users
@@ -57,8 +63,8 @@ const pickUser = async (say, channel,ts, thread_ts, triggeringUser, message) => 
         user: member,
       })
       .then((info) => ({
-        user: info.user.id,
-        isBot: info.user.is_bot,
+        user: info.user?.id,
+        isBot: info.user?.is_bot,
       })),
   );
 
@@ -76,7 +82,7 @@ const pickUser = async (say, channel,ts, thread_ts, triggeringUser, message) => 
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `<@${pickedUser.user}> you've been picked by <@${triggeringUser}>: *${message}*`,
+            text: `<@${pickedUser.user}> you're up!`,
           },
           accessory: {
             type: "button",
@@ -85,7 +91,6 @@ const pickUser = async (say, channel,ts, thread_ts, triggeringUser, message) => 
               text: ":recycle: Re-roll",
               emoji: true,
             },
-            value: message,
             action_id: "re_roll_button_click",
           },
         },
@@ -98,7 +103,7 @@ const pickUser = async (say, channel,ts, thread_ts, triggeringUser, message) => 
   }
 };
 
-const throwError = async (say) => {
+const throwError = async (say: SayFn) => {
   try {
     await say({
       text: "Oi use me properly",
@@ -111,9 +116,7 @@ const throwError = async (say) => {
 app.event("app_mention", async ({ event, say, context }) => {
   const { botUserId } = context;
 
-  console.log(event);
-
-  const message = event.text;
+  const { text: message, channel, ts, thread_ts, user } = event;
 
   if (!message.startsWith(`<@${botUserId}>`)) {
     return throwError(say);
@@ -125,41 +128,48 @@ app.event("app_mention", async ({ event, say, context }) => {
     return throwError(say);
   }
 
-  await pickUser(
-    say,
-    event.channel,
-    event.ts,
-    event.thread_ts,
-    event.user,
-    message.slice(firstSpaceIdx).trim(),
-  );
+  if (!user) {
+    return throwError(say);
+  }
+
+  await pickUser(say, channel, ts, thread_ts, user);
 });
 
 app.action("re_roll_button_click", async ({ ack, body, say }) => {
   // Acknowledge the action
   await ack();
 
-  const channel = body.channel.id;
-  const message = body.actions[0].value;
-  const originalMessageTimestamp = body.message.ts;
-  const originalBlock = body.message.blocks[0];
+  if (body.type !== "block_actions") {
+    return throwError(say);
+  }
 
-  await app.client.chat.update({
+  const action = body.actions[0];
+
+  if (action.type !== "button" || !body.channel) {
+    return throwError(say);
+  }
+
+  const channel = body.channel.id;
+  const originalMessageTimestamp = body.message?.ts;
+  const originalThreadTimestamp = body.message?.thread_ts as string | undefined;
+
+  if (!originalMessageTimestamp) {
+    return throwError(say);
+  }
+
+  await app.client.reactions.add({
     channel,
-    ts: originalMessageTimestamp,
-    blocks: [
-      {
-        ...originalBlock,
-        text: {
-          type: "mrkdwn",
-          text: `:no-cross: ~${originalBlock.text.text}~ :no-cross:`,
-        },
-        accessory: undefined,
-      },
-    ],
+    timestamp: originalMessageTimestamp,
+    name: "no-cross",
   });
 
-  await pickUser(say, channel, body.user.id, message);
+  await pickUser(
+    say,
+    channel,
+    originalMessageTimestamp,
+    originalThreadTimestamp,
+    body.user.id,
+  );
 });
 
 (async () => {
