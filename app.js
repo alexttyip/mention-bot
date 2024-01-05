@@ -46,7 +46,7 @@ const getGenerateInteger = async (min, max, n = 1) => {
   return json.result.random.data[0];
 };
 
-const pickUser = async (say, channel, triggeringUser, message) => {
+const pickUser = async (say, channel,ts, thread_ts, triggeringUser, message) => {
   const members = await app.client.conversations
     .members({ channel })
     .then((obj) => obj.members);
@@ -90,6 +90,7 @@ const pickUser = async (say, channel, triggeringUser, message) => {
           },
         },
       ],
+      thread_ts: thread_ts ?? ts,
       text: "Back-up text",
     });
   } catch (error) {
@@ -107,10 +108,31 @@ const throwError = async (say) => {
   }
 };
 
-app.command("/ipick", async ({ command, say, context, ack }) => {
-  await ack();
+app.event("app_mention", async ({ event, say, context }) => {
+  const { botUserId } = context;
 
-  await pickUser(say, command.channel_id, command.user_id, command.text.trim());
+  console.log(event);
+
+  const message = event.text;
+
+  if (!message.startsWith(`<@${botUserId}>`)) {
+    return throwError(say);
+  }
+
+  const firstSpaceIdx = message.indexOf(" ");
+
+  if (firstSpaceIdx === -1) {
+    return throwError(say);
+  }
+
+  await pickUser(
+    say,
+    event.channel,
+    event.ts,
+    event.thread_ts,
+    event.user,
+    message.slice(firstSpaceIdx).trim(),
+  );
 });
 
 app.action("re_roll_button_click", async ({ ack, body, say }) => {
