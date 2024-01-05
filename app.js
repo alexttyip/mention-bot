@@ -107,29 +107,10 @@ const throwError = async (say) => {
   }
 };
 
-// subscribe to 'app_mention' event in your App config
-// need app_mentions:read and chat:write scopes
-app.event("app_mention", async ({ event, say, context }) => {
-  const { botUserId } = context;
+app.command("/ipick", async ({ command, say, context, ack }) => {
+  await ack();
 
-  const message = event.text;
-
-  if (!message.startsWith(`<@${botUserId}>`)) {
-    return throwError(say);
-  }
-
-  const firstSpaceIdx = message.indexOf(" ");
-
-  if (firstSpaceIdx === -1) {
-    return throwError(say);
-  }
-
-  await pickUser(
-    say,
-    event.channel,
-    event.user,
-    message.slice(firstSpaceIdx).trim(),
-  );
+  await pickUser(say, command.channel_id, command.user_id, command.text.trim());
 });
 
 app.action("re_roll_button_click", async ({ ack, body, say }) => {
