@@ -4,6 +4,7 @@ import {
   PartitionKeyKind,
 } from "@azure/cosmos";
 import { ConversationStore } from "@slack/bolt";
+import { ConversationState, DbConversationState } from "../../types";
 
 const endpoint = process.env.DB_ENDPOINT;
 const key = process.env.DB_KEY;
@@ -11,15 +12,6 @@ const key = process.env.DB_KEY;
 const databaseId = process.env.DB_ID ?? "";
 const containerId = process.env.DB_CONTAINER_ID ?? "";
 const partitionKey = { kind: PartitionKeyKind.Hash, paths: ["/id"] };
-
-export type ConversationState = {
-  excluded: Set<string>;
-};
-
-export type DbConversationState = {
-  id: string;
-  excluded: string[];
-};
 
 const mapConversationStateToDbConversationState = (
   conversationId: string,
