@@ -33,11 +33,21 @@ const app = new App({
   convoStore: store,
 });
 
+class NoEligibleUsersError extends Error {}
+
 const pickUser = async (
   userIds: string[],
   triggeringUser: string | undefined,
+  excluded: Set<string>,
 ) => {
-  const eligibleUsers = userIds.filter((userId) => userId !== triggeringUser);
+  const eligibleUsers = userIds.filter(
+    (userId) => userId !== triggeringUser && !excluded.has(userId),
+  );
+
+  if (eligibleUsers.length === 0) {
+    throw new NoEligibleUsersError();
+  }
+
   const randomNumber = await getRandomInteger(0, eligibleUsers.length - 1);
   return eligibleUsers[randomNumber];
 };
@@ -47,6 +57,7 @@ const pick = async (
   triggeringUser: string | undefined,
   channel: string,
   restOfCommand: string[],
+  { conversation: { excluded } }: ContextWithConversation,
   mentionTs: string,
   client: WebClient,
 ) => {
@@ -61,9 +72,17 @@ const pick = async (
     // TODO pick from team
   }
 
-  const pickedUser = await pickUser(userIds, triggeringUser);
+  try {
+    const pickedUser = await pickUser(userIds, triggeringUser, excluded);
 
-  await replyWithChosenUser(say, pickedUser, mentionTs);
+    return replyWithChosenUser(say, pickedUser, mentionTs);
+  } catch (error) {
+    if (error instanceof NoEligibleUsersError) {
+      return sayInThread(say, mentionTs, "No eligible users to pick from");
+    }
+
+    throw error;
+  }
 };
 
 const exclude = async (
@@ -170,7 +189,7 @@ const handleMention = async ({
 
   switch (cmd) {
     case "pick":
-      await pick(say, user, channel, rest, ts, client); // TODO does this handle mentions in threads?
+      await pick(say, user, channel, rest, context, ts, client); // TODO does this handle mentions in threads?
       break;
     case "exclude":
     case "rm":
