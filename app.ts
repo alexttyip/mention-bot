@@ -1,12 +1,27 @@
 import "dotenv/config";
 import { App, Context, MemoryStore, SayFn } from "@slack/bolt";
-import { getGenerateInteger } from "./randomNumberClient";
 import { StringIndexed } from "@slack/bolt/dist/types/helpers";
+import { WebClient } from "@slack/web-api";
+import { getRandomInteger } from "./clients-and-helpers/randomNumberClient";
+import {
+  replyWithChosenUser,
+  sayInThread,
+  throwError,
+} from "./clients-and-helpers/sayHelpers";
+import {
+  getAllUserIdsInChannel,
+  getAllUserIdsInMessage,
+} from "./clients-and-helpers/userHelpers";
+
+type ContextWithConversation = Context &
+  StringIndexed & {
+    conversation?: Conversation;
+    updateConversation: (conversation: Conversation) => Promise<void>;
+  };
+
+type Conversation = Record<string, Set<string>>;
 
 const store = new MemoryStore();
-
-// console.log("conversation: ", context.conversation);
-// context.updateConversation((context.conversation ?? "") + "1");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -16,85 +31,15 @@ const app = new App({
   convoStore: store,
 });
 
-const replyWithChosenUser = (
-  say: SayFn,
-  userId: string,
-  threadTs?: string,
-  ts?: string,
-) =>
-  say({
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `<@${userId}> you're up!`,
-        },
-        accessory: {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: ":recycle: Re-roll",
-            emoji: true,
-          },
-          value: ts,
-          action_id: "re_roll_button_click",
-        },
-      },
-    ],
-    thread_ts: threadTs ?? ts,
-    text: "Back-up text",
-  });
+// TODO initiate with all users of the channel
 
 const pickUser = async (
   userIds: string[],
   triggeringUser: string | undefined,
 ) => {
   const eligibleUsers = userIds.filter((userId) => userId !== triggeringUser);
-  const randomNumber = await getGenerateInteger(0, eligibleUsers.length - 1);
+  const randomNumber = await getRandomInteger(0, eligibleUsers.length - 1);
   return eligibleUsers[randomNumber];
-};
-
-const getAllUserIdsInChannel = async (channel: string) => {
-  const members =
-    (await app.client.conversations
-      .members({ channel })
-      .then((obj) => obj.members)) ?? [];
-
-  const infoPromises = members.map((member) =>
-    app.client.users
-      .info({
-        user: member,
-      })
-      .then(({ user }) => user),
-  );
-
-  let infos = await Promise.all(infoPromises);
-
-  // Exclude bots and undefined users
-  return infos.reduce((acc: string[], user) => {
-    if (!user) {
-      return acc;
-    }
-
-    const { id, is_bot } = user;
-
-    if (!is_bot && id) {
-      acc.push(id);
-    }
-
-    return acc;
-  }, []);
-};
-
-const throwError = async (say: SayFn) => {
-  try {
-    await say({
-      text: "Oi use me properly",
-    });
-  } catch (error) {
-    console.error(error);
-  }
 };
 
 const pick = async (
@@ -102,7 +47,8 @@ const pick = async (
   triggeringUser: string | undefined,
   channel: string,
   restOfCommand: string[],
-  messageTs: string,
+  mentionTs: string,
+  client: WebClient,
 ) => {
   const flagIdx = restOfCommand.findIndex((word) => word === "-t");
   const team =
@@ -110,20 +56,105 @@ const pick = async (
 
   let userIds: string[] = [];
   if (!team) {
-    userIds = await getAllUserIdsInChannel(channel);
+    userIds = await getAllUserIdsInChannel(channel, client);
   } else {
     // TODO pick from team
   }
 
   const pickedUser = await pickUser(userIds, triggeringUser);
 
-  await replyWithChosenUser(say, pickedUser, undefined, messageTs);
+  await replyWithChosenUser(say, pickedUser, mentionTs);
+};
+
+const include = async (
+  channel: string,
+  restOfCommand: string[],
+  context: ContextWithConversation,
+  mentionTs: string,
+) => {
+  const conversation = context.conversation ?? {};
+  if (!conversation[channel]) {
+    conversation[channel] = new Set();
+  }
+
+  for (const userId of getAllUserIdsInMessage(restOfCommand)) {
+    conversation[channel].add(userId);
+  }
+
+  await context.updateConversation(conversation);
+
+  await app.client.reactions.add({
+    channel,
+    timestamp: mentionTs,
+    name: "ok_hand",
+  });
+};
+
+const exclude = async (
+  channel: string,
+  restOfCommand: string[],
+  context: ContextWithConversation,
+  mentionTs: string,
+) => {
+  const conversation = context.conversation ?? {};
+
+  if (!conversation[channel]) {
+    return app.client.reactions.add({
+      channel,
+      timestamp: mentionTs,
+      name: "ok_hand",
+    });
+  }
+
+  for (const userId of getAllUserIdsInMessage(restOfCommand)) {
+    conversation[channel].delete(userId);
+  }
+
+  await context.updateConversation(conversation);
+
+  await app.client.reactions.add({
+    channel,
+    timestamp: mentionTs,
+    name: "ok_hand",
+  });
+};
+
+const list = async (
+  say: SayFn,
+  channel: string,
+  { conversation = {} }: ContextWithConversation,
+  mentionTs: string,
+) => {
+  const included = conversation[channel] ?? new Set();
+
+  if (included.size === 0) {
+    return sayInThread(
+      say,
+      mentionTs,
+      "No users included in this channel yet.",
+    );
+  }
+
+  const namePromises: Promise<string | undefined>[] = Array.from(included).map(
+    (user: string) =>
+      app.client.users
+        .info({ user })
+        .then(({ user }) => user?.profile?.display_name),
+  );
+  let names = await Promise.all(namePromises);
+
+  await sayInThread(
+    say,
+    mentionTs,
+    `Included users: ${names.filter(Boolean).join(", ")}`,
+  );
 };
 
 const handleMention = async ({
   event,
   say,
   context,
+  client,
 }: {
   event: {
     text: string;
@@ -133,13 +164,15 @@ const handleMention = async ({
     user?: string;
   };
   say: SayFn;
-  context: Context & StringIndexed;
+  context: ContextWithConversation;
+  client: WebClient;
 }) => {
   const { botUserId } = context;
 
-  const { text: message, channel, ts, thread_ts, user } = event;
+  // Use thread_ts?
+  const { text: message, channel, ts, user } = event;
 
-  const [prefix, cmd, ...rest] = message.split(" ");
+  const [prefix, cmd, ...rest] = message.split(/\s+/);
 
   if (prefix !== `<@${botUserId}>`) {
     return throwError(say);
@@ -151,12 +184,21 @@ const handleMention = async ({
 
   switch (cmd) {
     case "pick":
-      await pick(say, user, channel, rest, ts); // TODO does this handle mentions in threads?
+      await pick(say, user, channel, rest, ts, client); // TODO does this handle mentions in threads?
       break;
-    // case "include":
-    //   throw "TODO include user into picks";
-    // case "exclude":
-    //   throw "TODO";
+    case "include":
+    case "i":
+      await include(channel, rest, context, ts);
+      break;
+    case "exclude":
+    case "rm":
+      await exclude(channel, rest, context, ts);
+      break;
+    case "list":
+    case "ls":
+      await list(say, channel, context, ts);
+      break;
+    // throw "TODO list users";
     // case "create":
     //   throw "TODO create list";
     // case "show":
@@ -175,64 +217,86 @@ const handleMention = async ({
       return throwError(say);
   }
 };
-app.event("app_mention", ({ event, say, context }) => {
-  return handleMention({ event, say, context });
+
+const doesContextHaveConversation = (
+  context: Context & StringIndexed,
+): context is ContextWithConversation => {
+  // TODO maybe do more checking here?
+  return context.updateConversation;
+};
+
+app.event("app_mention", ({ event, say, context, client }) => {
+  if (doesContextHaveConversation(context)) {
+    return handleMention({ event, say, context, client });
+  }
+
+  return throwError(say);
 });
 
-app.action("re_roll_button_click", async ({ ack, body, say, context }) => {
-  // Acknowledge the action
-  await ack();
+app.action(
+  "re_roll_button_click",
+  async ({ ack, body, say, context, client }) => {
+    // Acknowledge the action
+    await ack();
 
-  if (body.type !== "block_actions") {
-    return throwError(say);
-  }
+    if (!doesContextHaveConversation(context)) {
+      return throwError(say);
+    }
 
-  const action = body.actions[0];
+    if (body.type !== "block_actions") {
+      return throwError(say);
+    }
 
-  if (action.type !== "button" || !body.channel) {
-    return throwError(say);
-  }
+    const action = body.actions[0];
 
-  const channel = body.channel.id;
+    if (action.type !== "button" || !body.channel) {
+      return throwError(say);
+    }
 
-  const originalMentionTs = action.value;
-  const originalMentionMessage = await app.client.conversations.history({
-    channel,
-    oldest: originalMentionTs,
-    limit: 1,
-    inclusive: true,
-  });
+    const channel = body.channel.id;
 
-  if (!originalMentionMessage.messages) {
-    // TODO originalMentionMessage.messages is empty if the bot is mentioned in a thread
-    throw "TODO handle mentions in thread";
-  }
-
-  const { user: originalTriggerMessageUser, text: originalTriggerMessageText } =
-    originalMentionMessage.messages[0];
-  if (!originalTriggerMessageText) {
-    return throwError(say);
-  }
-
-  // React to the old pick message with no-cross
-  const oldPickMessageTs = body.message?.ts;
-  await app.client.reactions.add({
-    channel,
-    timestamp: oldPickMessageTs,
-    name: "no-cross",
-  });
-
-  return handleMention({
-    event: {
-      text: originalTriggerMessageText,
+    const originalMentionTs = action.value;
+    const originalMentionMessage = await app.client.conversations.history({
       channel,
-      ts: originalMentionTs,
+      oldest: originalMentionTs,
+      limit: 1,
+      inclusive: true,
+    });
+
+    if (!originalMentionMessage.messages) {
+      // TODO originalMentionMessage.messages is empty if the bot is mentioned in a thread
+      throw "TODO handle mentions in thread";
+    }
+
+    const {
       user: originalTriggerMessageUser,
-    },
-    say,
-    context,
-  });
-});
+      text: originalTriggerMessageText,
+    } = originalMentionMessage.messages[0];
+    if (!originalTriggerMessageText) {
+      return throwError(say);
+    }
+
+    // React to the old pick message with no-cross
+    const oldPickMessageTs = body.message?.ts;
+    await app.client.reactions.add({
+      channel,
+      timestamp: oldPickMessageTs,
+      name: "no-cross",
+    });
+
+    return handleMention({
+      event: {
+        text: originalTriggerMessageText,
+        channel,
+        ts: originalMentionTs,
+        user: originalTriggerMessageUser,
+      },
+      say,
+      context,
+      client,
+    });
+  },
+);
 
 (async () => {
   // Start your app
