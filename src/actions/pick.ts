@@ -7,6 +7,7 @@ import {
   sayInThread,
 } from "../clients-and-helpers/sayHelpers";
 import { ContextWithConversation } from "../../types";
+import { throwUnexpectedError } from "../clients-and-helpers/errorHandler";
 
 class NoEligibleUsersError extends Error {}
 
@@ -36,7 +37,7 @@ export const getUsersAndPick = async (
   triggeringUser: string | undefined,
   channel: string,
   excluded: Set<string>,
-  mentionTs: string,
+  triggeringTs: string,
   client: WebClient,
   team?: string,
 ) => {
@@ -50,13 +51,14 @@ export const getUsersAndPick = async (
   try {
     const pickedUser = await pickUser(userIds, triggeringUser, excluded);
 
-    return replyWithChosenUser(say, triggeringUser, pickedUser, mentionTs);
+    return replyWithChosenUser(say, triggeringUser, pickedUser, triggeringTs);
   } catch (error) {
     if (error instanceof NoEligibleUsersError) {
-      return sayInThread(say, mentionTs, "No eligible users to pick from");
+      return sayInThread(say, triggeringTs, "No eligible users to pick from");
     }
 
-    throw error;
+    console.error(error);
+    return throwUnexpectedError(client, channel, triggeringTs);
   }
 };
 

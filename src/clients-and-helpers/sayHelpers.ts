@@ -1,8 +1,8 @@
 import { Button, SayFn } from "@slack/bolt";
 
 export type PickButtonPayload = {
-  mentionTs: string;
-  triggeringUser?: string;
+  triggerTs: string;
+  triggerUser?: string;
   pickedUser: string;
 };
 
@@ -29,17 +29,17 @@ export const sayInThread = (
 
 export const replyWithChosenUser = (
   say: SayFn,
-  triggeringUser: string | undefined,
+  triggerUser: string | undefined,
   pickedUser: string,
-  mentionTs: string,
+  triggerTs: string,
 ) => {
   const payload: PickButtonPayload = {
-    mentionTs,
-    triggeringUser,
+    triggerTs,
+    triggerUser,
     pickedUser,
   };
 
-  return sayInThread(say, mentionTs, `<@${pickedUser}> you're up!`, {
+  return sayInThread(say, triggerTs, `<@${pickedUser}> you're up!`, {
     type: "button",
     text: {
       type: "plain_text",
@@ -49,14 +49,4 @@ export const replyWithChosenUser = (
     value: JSON.stringify(payload),
     action_id: "re_roll_button_click",
   });
-};
-
-export const throwError = async (say: SayFn) => {
-  try {
-    await say({
-      text: "Oi use me properly",
-    });
-  } catch (error) {
-    console.error(error);
-  }
 };

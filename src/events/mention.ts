@@ -1,4 +1,3 @@
-import { throwError } from "../clients-and-helpers/sayHelpers";
 import { Middleware, SayFn, SlackEventMiddlewareArgs } from "@slack/bolt";
 import {
   ContextWithConversation,
@@ -7,6 +6,10 @@ import {
 import { WebClient } from "@slack/web-api";
 import { pick } from "../actions/pick";
 import { exclude, include, listExcluded } from "../actions/exclude-include";
+import {
+  throwUnexpectedError,
+  throwUserError,
+} from "../clients-and-helpers/errorHandler";
 
 type MentionParams = {
   event: {
@@ -33,12 +36,8 @@ const handleMention = async ({
 
   const [prefix, cmd, ...rest] = message.split(/\s+/);
 
-  if (prefix !== `<@${botUserId}>`) {
-    return throwError(say);
-  }
-
-  if (!cmd) {
-    return throwError(say);
+  if (prefix !== `<@${botUserId}>` || !cmd) {
+    return throwUserError(client, channel, mentionTs);
   }
 
   switch (cmd) {
@@ -72,7 +71,7 @@ const handleMention = async ({
     // case "stats":
     //   throw "TODO stats";
     default:
-      return throwError(say);
+      return throwUserError(client, channel, mentionTs);
   }
 };
 
@@ -83,5 +82,5 @@ export const mentionEvent: Middleware<
     return handleMention({ event, say, context, client });
   }
 
-  return throwError(say);
+  return throwUnexpectedError(client, event.channel, event.ts);
 };
