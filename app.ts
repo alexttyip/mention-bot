@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { App, Context, MemoryStore, SayFn } from "@slack/bolt";
+import { App, Context, SayFn } from "@slack/bolt";
 import { StringIndexed } from "@slack/bolt/dist/types/helpers";
 import { WebClient } from "@slack/web-api";
 import { getRandomInteger } from "./clients-and-helpers/randomNumberClient";
@@ -12,16 +12,18 @@ import {
   getAllUserIdsInChannel,
   getAllUserIdsInMessage,
 } from "./clients-and-helpers/userHelpers";
+import {
+  ConversationState,
+  CosmosDbConvoStore,
+} from "./clients-and-helpers/dbClient";
 
 type ContextWithConversation = Context &
   StringIndexed & {
-    conversation?: Conversation;
-    updateConversation: (conversation: Conversation) => Promise<void>;
+    conversation: ConversationState;
+    updateConversation: (conversation: ConversationState) => Promise<void>;
   };
 
-type Conversation = Record<string, Set<string>>;
-
-const store = new MemoryStore();
+const store = new CosmosDbConvoStore();
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -72,13 +74,10 @@ const include = async (
   context: ContextWithConversation,
   mentionTs: string,
 ) => {
-  const conversation = context.conversation ?? {};
-  if (!conversation[channel]) {
-    conversation[channel] = new Set();
-  }
+  const { conversation } = context;
 
   for (const userId of getAllUserIdsInMessage(restOfCommand)) {
-    conversation[channel].add(userId);
+    conversation.included.add(userId);
   }
 
   await context.updateConversation(conversation);
@@ -96,9 +95,9 @@ const exclude = async (
   context: ContextWithConversation,
   mentionTs: string,
 ) => {
-  const conversation = context.conversation ?? {};
+  const { conversation } = context;
 
-  if (!conversation[channel]) {
+  if (!conversation.included) {
     return app.client.reactions.add({
       channel,
       timestamp: mentionTs,
@@ -107,7 +106,7 @@ const exclude = async (
   }
 
   for (const userId of getAllUserIdsInMessage(restOfCommand)) {
-    conversation[channel].delete(userId);
+    conversation.included.delete(userId);
   }
 
   await context.updateConversation(conversation);
@@ -121,11 +120,10 @@ const exclude = async (
 
 const list = async (
   say: SayFn,
-  channel: string,
-  { conversation = {} }: ContextWithConversation,
+  { conversation }: ContextWithConversation,
   mentionTs: string,
 ) => {
-  const included = conversation[channel] ?? new Set();
+  const { included } = conversation;
 
   if (included.size === 0) {
     return sayInThread(
@@ -196,7 +194,7 @@ const handleMention = async ({
       break;
     case "list":
     case "ls":
-      await list(say, channel, context, ts);
+      await list(say, context, ts);
       break;
     // throw "TODO list users";
     // case "create":
@@ -221,8 +219,7 @@ const handleMention = async ({
 const doesContextHaveConversation = (
   context: Context & StringIndexed,
 ): context is ContextWithConversation => {
-  // TODO maybe do more checking here?
-  return context.updateConversation;
+  return context.conversation && context.updateConversation;
 };
 
 app.event("app_mention", ({ event, say, context, client }) => {
