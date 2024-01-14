@@ -13,26 +13,26 @@ const containerId = process.env.DB_CONTAINER_ID ?? "";
 const partitionKey = { kind: PartitionKeyKind.Hash, paths: ["/id"] };
 
 export type ConversationState = {
-  included: Set<string>;
+  excluded: Set<string>;
 };
 
 export type DbConversationState = {
   id: string;
-  included: string[];
+  excluded: string[];
 };
 
 const mapConversationStateToDbConversationState = (
   conversationId: string,
-  { included }: ConversationState,
+  { excluded }: ConversationState,
 ): DbConversationState => ({
   id: conversationId,
-  included: Array.from(included),
+  excluded: Array.from(excluded),
 });
 
 const mapDbConversationStateToConversationState = ({
-  included,
+  excluded,
 }: DbConversationState): ConversationState => ({
-  included: new Set(included),
+  excluded: new Set(excluded),
 });
 
 export class CosmosDbConvoStore
@@ -45,7 +45,7 @@ export class CosmosDbConvoStore
 
     void CosmosDbConvoStore.createDatabase(this.client)
       .then(() => CosmosDbConvoStore.createContainer(this.client))
-      .then(() => console.log("Connected to DB"));
+      .then(() => console.log("💿 Connected to DB"));
   }
 
   private static getDbOption(): CosmosClientOptions {
@@ -94,7 +94,7 @@ export class CosmosDbConvoStore
 
     if (results.length === 0) {
       return {
-        included: new Set(),
+        excluded: new Set(),
       };
     }
 

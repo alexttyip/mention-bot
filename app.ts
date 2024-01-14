@@ -33,8 +33,6 @@ const app = new App({
   convoStore: store,
 });
 
-// TODO initiate with all users of the channel
-
 const pickUser = async (
   userIds: string[],
   triggeringUser: string | undefined,
@@ -68,27 +66,6 @@ const pick = async (
   await replyWithChosenUser(say, pickedUser, mentionTs);
 };
 
-const include = async (
-  channel: string,
-  restOfCommand: string[],
-  context: ContextWithConversation,
-  mentionTs: string,
-) => {
-  const { conversation } = context;
-
-  for (const userId of getAllUserIdsInMessage(restOfCommand)) {
-    conversation.included.add(userId);
-  }
-
-  await context.updateConversation(conversation);
-
-  await app.client.reactions.add({
-    channel,
-    timestamp: mentionTs,
-    name: "ok_hand",
-  });
-};
-
 const exclude = async (
   channel: string,
   restOfCommand: string[],
@@ -97,16 +74,8 @@ const exclude = async (
 ) => {
   const { conversation } = context;
 
-  if (!conversation.included) {
-    return app.client.reactions.add({
-      channel,
-      timestamp: mentionTs,
-      name: "ok_hand",
-    });
-  }
-
   for (const userId of getAllUserIdsInMessage(restOfCommand)) {
-    conversation.included.delete(userId);
+    conversation.excluded.add(userId);
   }
 
   await context.updateConversation(conversation);
@@ -118,22 +87,41 @@ const exclude = async (
   });
 };
 
-const list = async (
+const include = async (
+  channel: string,
+  restOfCommand: string[],
+  context: ContextWithConversation,
+  mentionTs: string,
+) => {
+  const { conversation } = context;
+
+  if (conversation.excluded) {
+    for (const userId of getAllUserIdsInMessage(restOfCommand)) {
+      conversation.excluded.delete(userId);
+    }
+
+    await context.updateConversation(conversation);
+  }
+
+  await app.client.reactions.add({
+    channel,
+    timestamp: mentionTs,
+    name: "ok_hand",
+  });
+};
+
+const listExcluded = async (
   say: SayFn,
   { conversation }: ContextWithConversation,
   mentionTs: string,
 ) => {
-  const { included } = conversation;
+  const { excluded } = conversation;
 
-  if (included.size === 0) {
-    return sayInThread(
-      say,
-      mentionTs,
-      "No users included in this channel yet.",
-    );
+  if (excluded.size === 0) {
+    return sayInThread(say, mentionTs, "No excluded users");
   }
 
-  const namePromises: Promise<string | undefined>[] = Array.from(included).map(
+  const namePromises: Promise<string | undefined>[] = Array.from(excluded).map(
     (user: string) =>
       app.client.users
         .info({ user })
@@ -144,7 +132,7 @@ const list = async (
   await sayInThread(
     say,
     mentionTs,
-    `Included users: ${names.filter(Boolean).join(", ")}`,
+    `Excluded users: ${names.filter(Boolean).join(", ")}`,
   );
 };
 
@@ -184,17 +172,17 @@ const handleMention = async ({
     case "pick":
       await pick(say, user, channel, rest, ts, client); // TODO does this handle mentions in threads?
       break;
-    case "include":
-    case "i":
-      await include(channel, rest, context, ts);
-      break;
     case "exclude":
     case "rm":
       await exclude(channel, rest, context, ts);
       break;
-    case "list":
-    case "ls":
-      await list(say, context, ts);
+    case "include":
+    case "i":
+      await include(channel, rest, context, ts);
+      break;
+    case "list-excluded":
+    case "lse":
+      await listExcluded(say, context, ts);
       break;
     // throw "TODO list users";
     // case "create":
