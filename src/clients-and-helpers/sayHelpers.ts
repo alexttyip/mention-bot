@@ -5,6 +5,7 @@ export type PickButtonPayload = {
   triggerTs: string;
   triggerUser?: string;
   pickedUser: string;
+  teamId?: string;
 };
 
 export const getSimpleTextBlock = (message: string) => ({
@@ -33,11 +34,13 @@ export const replyWithChosenUser = (
   triggerUser: string | undefined,
   pickedUser: string,
   triggerTs: string,
+  teamId: string | undefined,
 ) => {
   const payload: PickButtonPayload = {
     triggerTs,
     triggerUser,
     pickedUser,
+    teamId,
   };
 
   return sayInThread(say, triggerTs, [

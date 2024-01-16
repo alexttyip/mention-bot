@@ -115,8 +115,6 @@ class CosmosDbConvoStore implements ConversationStore<ConversationState> {
       };
     }
 
-    console.log("get", results[0]);
-
     return mapDbConversationStateToConversationState(results[0]);
   }
 

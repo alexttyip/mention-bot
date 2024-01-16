@@ -7,7 +7,7 @@ import {
   replyWithChosenUser,
   sayInThread,
 } from "../clients-and-helpers/sayHelpers";
-import { ContextWithConversation } from "../../types";
+import { ContextWithConversation, ConversationState } from "../../types";
 import { throwUnexpectedError } from "../clients-and-helpers/errorHandler";
 
 class NoEligibleUsersError extends Error {}
@@ -37,22 +37,36 @@ export const getUsersAndPick = async (
   say: SayFn,
   triggeringUser: string | undefined,
   channel: string,
-  excluded: Set<string>,
+  { excluded, teams }: ConversationState,
   triggeringTs: string,
   client: WebClient,
-  team?: string,
+  teamId?: string,
 ) => {
   let userIds: string[] = [];
-  if (!team) {
+
+  if (!teamId) {
     userIds = await getAllUserIdsInChannel(channel, client);
   } else {
-    // TODO pick from team
+    const team = teams[teamId];
+    if (!team) {
+      return sayInThread(say, triggeringTs, [
+        getSimpleTextBlock("Team not found"),
+      ]);
+    }
+
+    userIds = [...team.members];
   }
 
   try {
     const pickedUser = await pickUser(userIds, triggeringUser, excluded);
 
-    return replyWithChosenUser(say, triggeringUser, pickedUser, triggeringTs);
+    return replyWithChosenUser(
+      say,
+      triggeringUser,
+      pickedUser,
+      triggeringTs,
+      teamId,
+    );
   } catch (error) {
     if (error instanceof NoEligibleUsersError) {
       return sayInThread(say, triggeringTs, [
@@ -70,11 +84,13 @@ export const pick = async (
   triggeringUser: string | undefined,
   channel: string,
   restOfCommand: string[],
-  { conversation: { excluded } }: ContextWithConversation,
+  { conversation }: ContextWithConversation,
   mentionTs: string,
   client: WebClient,
 ) => {
-  const flagIdx = restOfCommand.findIndex((word) => word === "-t");
+  const flagIdx = restOfCommand.findIndex(
+    (word) => word === "-t" || word === "--team",
+  );
   const team =
     flagIdx !== -1 ? restOfCommand.slice(flagIdx + 1).join(" ") : undefined;
 
@@ -82,7 +98,7 @@ export const pick = async (
     say,
     triggeringUser,
     channel,
-    excluded,
+    conversation,
     mentionTs,
     client,
     team,

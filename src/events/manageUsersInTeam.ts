@@ -21,7 +21,6 @@ type ManageUsersModalSubmissionPayload = {
 export const manageUsersInTeam: Middleware<
   SlackActionMiddlewareArgs<BlockAction>
 > = async ({ ack, body, say, context, client }) => {
-  console.log(context);
   await ack();
 
   if (!body.message) {
@@ -106,7 +105,6 @@ export const manageUsersModalSubmission: Middleware<
   const { teamId, conversationId } = JSON.parse(
     view.private_metadata,
   ) as ManageUsersModalSubmissionPayload;
-  // TODO handle teamName error
 
   if (!users?.length) {
     return ack({
