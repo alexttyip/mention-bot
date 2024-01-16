@@ -1,10 +1,12 @@
 import "dotenv/config";
 import { App } from "@slack/bolt";
-import { CosmosDbConvoStore } from "./src/clients-and-helpers/dbClient";
+import store from "./src/clients-and-helpers/dbClient";
 import { mentionEvent } from "./src/events/mention";
 import { reRoll } from "./src/events/reRoll";
-
-const store = new CosmosDbConvoStore();
+import {
+  manageUsersInTeam,
+  manageUsersModalSubmission,
+} from "./src/events/manageUsersInTeam";
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -16,6 +18,9 @@ const app = new App({
 
 app.event("app_mention", mentionEvent);
 app.action("re_roll_button_click", reRoll);
+app.action("manage_users_button_click", manageUsersInTeam);
+
+app.view("manage_users_modal_submission", manageUsersModalSubmission);
 
 (async () => {
   // Start your app

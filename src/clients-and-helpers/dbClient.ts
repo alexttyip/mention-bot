@@ -4,7 +4,12 @@ import {
   PartitionKeyKind,
 } from "@azure/cosmos";
 import { ConversationStore } from "@slack/bolt";
-import { ConversationState, DbConversationState } from "../../types";
+import {
+  ConversationState,
+  DbConversationState,
+  DbTeam,
+  Team,
+} from "../../types";
 
 const endpoint = process.env.DB_ENDPOINT;
 const key = process.env.DB_KEY;
@@ -15,21 +20,40 @@ const partitionKey = { kind: PartitionKeyKind.Hash, paths: ["/id"] };
 
 const mapConversationStateToDbConversationState = (
   conversationId: string,
-  { excluded }: ConversationState,
+  { excluded, teams }: ConversationState,
 ): DbConversationState => ({
   id: conversationId,
   excluded: Array.from(excluded),
+  teams: Object.keys(teams).reduce(
+    (acc: Record<string, DbTeam>, teamId) => ({
+      ...acc,
+      [teamId]: {
+        displayName: teams[teamId].displayName,
+        members: Array.from(teams[teamId].members),
+      },
+    }),
+    {},
+  ),
 });
 
 const mapDbConversationStateToConversationState = ({
   excluded,
+  teams,
 }: DbConversationState): ConversationState => ({
   excluded: new Set(excluded),
+  teams: Object.keys(teams).reduce(
+    (acc: Record<string, Team>, teamId) => ({
+      ...acc,
+      [teamId]: {
+        displayName: teams[teamId].displayName,
+        members: new Set(teams[teamId].members),
+      },
+    }),
+    {},
+  ),
 });
 
-export class CosmosDbConvoStore
-  implements ConversationStore<ConversationState>
-{
+class CosmosDbConvoStore implements ConversationStore<ConversationState> {
   private readonly client: CosmosClient;
 
   constructor() {
@@ -87,8 +111,11 @@ export class CosmosDbConvoStore
     if (results.length === 0) {
       return {
         excluded: new Set(),
+        teams: {},
       };
     }
+
+    console.log("get", results[0]);
 
     return mapDbConversationStateToConversationState(results[0]);
   }
@@ -102,3 +129,7 @@ export class CosmosDbConvoStore
       );
   }
 }
+
+const store = new CosmosDbConvoStore();
+
+export default store;

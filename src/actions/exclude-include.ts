@@ -2,7 +2,10 @@ import { ContextWithConversation } from "../../types";
 import { getAllUserIdsInMessage } from "../clients-and-helpers/userHelpers";
 import { WebClient } from "@slack/web-api";
 import { SayFn } from "@slack/bolt";
-import { sayInThread } from "../clients-and-helpers/sayHelpers";
+import {
+  getSimpleTextBlock,
+  sayInThread,
+} from "../clients-and-helpers/sayHelpers";
 
 export const exclude = async (
   channel: string,
@@ -59,7 +62,9 @@ export const listExcluded = async (
   const { excluded } = conversation;
 
   if (excluded.size === 0) {
-    return sayInThread(say, mentionTs, "No excluded users");
+    return sayInThread(say, mentionTs, [
+      getSimpleTextBlock("No excluded users"),
+    ]);
   }
 
   const namePromises: Promise<string | undefined>[] = Array.from(excluded).map(
@@ -70,9 +75,7 @@ export const listExcluded = async (
   );
   let names = await Promise.all(namePromises);
 
-  await sayInThread(
-    say,
-    mentionTs,
-    `Excluded users: ${names.filter(Boolean).join(", ")}`,
-  );
+  await sayInThread(say, mentionTs, [
+    getSimpleTextBlock(`Excluded users: ${names.filter(Boolean).join(", ")}`),
+  ]);
 };

@@ -3,6 +3,7 @@ import { SayFn } from "@slack/bolt";
 import { WebClient } from "@slack/web-api";
 import { getAllUserIdsInChannel } from "../clients-and-helpers/userHelpers";
 import {
+  getSimpleTextBlock,
   replyWithChosenUser,
   sayInThread,
 } from "../clients-and-helpers/sayHelpers";
@@ -54,7 +55,9 @@ export const getUsersAndPick = async (
     return replyWithChosenUser(say, triggeringUser, pickedUser, triggeringTs);
   } catch (error) {
     if (error instanceof NoEligibleUsersError) {
-      return sayInThread(say, triggeringTs, "No eligible users to pick from");
+      return sayInThread(say, triggeringTs, [
+        getSimpleTextBlock("No eligible users to pick from"),
+      ]);
     }
 
     console.error(error);

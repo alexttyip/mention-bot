@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/mention-bot.iml" filepath="$PROJECT_DIR$/.idea/mention-bot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/pickir-bot.iml" filepath="$PROJECT_DIR$/.idea/pickir-bot.iml" />
     </modules>
   </component>
 </project>

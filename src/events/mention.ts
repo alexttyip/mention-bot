@@ -10,6 +10,7 @@ import {
   throwUnexpectedError,
   throwUserError,
 } from "../clients-and-helpers/errorHandler";
+import { createTeam, showTeam } from "./teams";
 
 type MentionParams = {
   event: {
@@ -56,10 +57,12 @@ const handleMention = async ({
     case "lse":
       await listExcluded(say, context, mentionTs, client);
       break;
-    // case "create":
-    //   throw "TODO create list";
-    // case "show":
-    //   throw "TODO display list";
+    case "create":
+      await createTeam(say, rest, context, mentionTs);
+      break;
+    case "show":
+      await showTeam(say, rest, context, mentionTs, client);
+      break;
     // case "delete":
     //   throw "TODO delete list";
     // case "add":
@@ -77,10 +80,11 @@ const handleMention = async ({
 
 export const mentionEvent: Middleware<
   SlackEventMiddlewareArgs<"app_mention">
-> = ({ event, say, context, client }) => {
+> = ({ event, say, context, client, body }) => {
   if (doesContextHaveConversation(context)) {
     return handleMention({ event, say, context, client });
   }
 
+  console.error("No conversation in context", context);
   return throwUnexpectedError(client, event.channel, event.ts);
 };
