@@ -1,26 +1,26 @@
 import { Context } from "@slack/bolt";
 import { StringIndexed } from "@slack/bolt/dist/types/helpers";
 
-export type Team = {
+export interface Team {
   displayName: string;
   members: Set<string>;
-};
+}
 
-export type DbTeam = {
+export interface DbTeam {
   displayName: string;
   members: string[];
-};
+}
 
-export type ConversationState = {
+export interface ConversationState {
   excluded: Set<string>;
   teams: Record<string, Team>;
-};
+}
 
-export type DbConversationState = {
+export interface DbConversationState {
   id: string;
   excluded: string[];
   teams: Record<string, DbTeam>;
-};
+}
 
 export type ContextWithConversation = Context &
   StringIndexed & {
@@ -31,5 +31,5 @@ export type ContextWithConversation = Context &
 export const doesContextHaveConversation = (
   context: Context & StringIndexed,
 ): context is ContextWithConversation => {
-  return context.conversation && context.updateConversation;
+  return !!context.conversation && !!context.updateConversation;
 };

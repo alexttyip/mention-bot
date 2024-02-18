@@ -22,9 +22,6 @@ app.action("manage_users_button_click", manageUsersInTeam);
 
 app.view("manage_users_modal_submission", manageUsersModalSubmission);
 
-(async () => {
-  // Start your app
-  await app.start();
-
+void app.start().then(() => {
   console.log("⚡️ Bolt app is running!");
-})();
+});

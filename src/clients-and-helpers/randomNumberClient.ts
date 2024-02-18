@@ -1,4 +1,8 @@
-export const getRandomInteger = async (min: number, max: number, n = 1) => {
+export const getRandomInteger = async (
+  min: number,
+  max: number,
+  n = 1,
+): Promise<number> => {
   const body = {
     jsonrpc: "2.0",
     method: "generateIntegers",
@@ -23,8 +27,15 @@ export const getRandomInteger = async (min: number, max: number, n = 1) => {
   };
 
   if (json.error) {
-    throw json.error;
+    throw new Error(json.error.message);
   }
 
-  return json.result.random.data[0];
+  const data = json.result.random.data;
+  if (data.length === 0) {
+    throw new Error("No random numbers generated");
+  }
+
+  // Disabling rule since it's explicitly checked in the if statement
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return data[0]!;
 };

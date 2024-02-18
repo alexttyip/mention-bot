@@ -7,9 +7,9 @@ import {
 import { KnownBlock } from "@slack/types";
 import { WebClient } from "@slack/web-api";
 
-export type ManageUsersButtonPayload = {
+export interface ManageUsersButtonPayload {
   teamId: string;
-};
+}
 
 const getManageUsersButton = (teamId: string): KnownBlock => {
   const payload: ManageUsersButtonPayload = {
@@ -45,9 +45,10 @@ export const createTeam = async (
 
   const manageUsersButton = getManageUsersButton(teamId);
 
-  if (teams[teamId]) {
+  const currentTeam = teams[teamId];
+  if (currentTeam) {
     return sayInThread(say, mentionTs, [
-      getSimpleTextBlock(`Team "${teams[teamId].displayName}" already exists`),
+      getSimpleTextBlock(`Team "${currentTeam.displayName}" already exists`),
       manageUsersButton,
     ]);
   }
@@ -104,7 +105,7 @@ export const showTeam = async (
         .then(({ user }) => user?.profile?.display_name),
   );
 
-  let names = await Promise.all(namePromises);
+  const names = await Promise.all(namePromises);
 
   return sayInThread(say, mentionTs, [
     getSimpleTextBlock(

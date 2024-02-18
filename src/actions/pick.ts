@@ -16,7 +16,7 @@ const pickUser = async (
   userIds: string[],
   triggeringUser: string | undefined,
   excluded: Set<string>,
-) => {
+): Promise<string> => {
   const eligibleUsers = userIds.filter(
     (userId) => userId !== triggeringUser && !excluded.has(userId),
   );
@@ -26,11 +26,13 @@ const pickUser = async (
   }
 
   if (eligibleUsers.length === 1) {
-    return eligibleUsers[0];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return eligibleUsers[0]!;
   }
 
   const randomNumber = await getRandomInteger(0, eligibleUsers.length - 1);
-  return eligibleUsers[randomNumber];
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return eligibleUsers[randomNumber]!;
 };
 
 export const getUsersAndPick = async (

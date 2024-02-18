@@ -12,7 +12,7 @@ import {
 } from "../clients-and-helpers/errorHandler";
 import { createTeam, showTeam } from "./teams";
 
-type MentionParams = {
+interface MentionParams {
   event: {
     text: string;
     channel: string;
@@ -23,7 +23,7 @@ type MentionParams = {
   say: SayFn;
   context: ContextWithConversation;
   client: WebClient;
-};
+}
 
 const handleMention = async ({
   event,
@@ -80,7 +80,7 @@ const handleMention = async ({
 
 export const mentionEvent: Middleware<
   SlackEventMiddlewareArgs<"app_mention">
-> = ({ event, say, context, client, body }) => {
+> = ({ event, say, context, client }) => {
   if (doesContextHaveConversation(context)) {
     return handleMention({ event, say, context, client });
   }

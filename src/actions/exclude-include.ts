@@ -38,13 +38,11 @@ export const include = async (
 ) => {
   const { conversation } = context;
 
-  if (conversation.excluded) {
-    for (const userId of getAllUserIdsInMessage(restOfCommand)) {
-      conversation.excluded.delete(userId);
-    }
-
-    await context.updateConversation(conversation);
+  for (const userId of getAllUserIdsInMessage(restOfCommand)) {
+    conversation.excluded.delete(userId);
   }
+
+  await context.updateConversation(conversation);
 
   await client.reactions.add({
     channel,
@@ -58,11 +56,11 @@ export const listExcluded = async (
   { conversation }: ContextWithConversation,
   mentionTs: string,
   client: WebClient,
-) => {
+): Promise<void> => {
   const { excluded } = conversation;
 
   if (excluded.size === 0) {
-    return sayInThread(say, mentionTs, [
+    return void sayInThread(say, mentionTs, [
       getSimpleTextBlock("No excluded users"),
     ]);
   }
@@ -73,7 +71,7 @@ export const listExcluded = async (
         .info({ user })
         .then(({ user }) => user?.profile?.display_name),
   );
-  let names = await Promise.all(namePromises);
+  const names = await Promise.all(namePromises);
 
   await sayInThread(say, mentionTs, [
     getSimpleTextBlock(`Excluded users: ${names.filter(Boolean).join(", ")}`),

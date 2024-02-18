@@ -13,14 +13,14 @@ import store from "../clients-and-helpers/dbClient";
 const MANAGE_USER_BLOCK_ID = "MANAGE_USER_BLOCK_ID";
 const MANAGE_USER_SELECT_ACTION_ID = "MANAGE_USER_SELECT_ACTION_ID";
 
-type ManageUsersModalSubmissionPayload = {
+interface ManageUsersModalSubmissionPayload {
   teamId: string;
   conversationId: string;
-};
+}
 
 export const manageUsersInTeam: Middleware<
   SlackActionMiddlewareArgs<BlockAction>
-> = async ({ ack, body, say, context, client }) => {
+> = async ({ ack, body, context, client }) => {
   await ack();
 
   if (!body.message) {
@@ -37,7 +37,7 @@ export const manageUsersInTeam: Middleware<
   const channel = body.channel.id;
   const pickMessageTs = body.message.ts;
 
-  if (action.type !== "button") {
+  if (!action || action.type !== "button") {
     return throwUnexpectedError(client, channel, pickMessageTs);
   }
 
@@ -97,10 +97,18 @@ export const manageUsersInTeam: Middleware<
 
 export const manageUsersModalSubmission: Middleware<
   SlackViewMiddlewareArgs<ViewSubmitAction>
-> = async ({ ack, view, context }) => {
-  const users =
-    view.state.values[MANAGE_USER_BLOCK_ID][MANAGE_USER_SELECT_ACTION_ID]
-      ?.selected_users;
+> = async ({ ack, view }) => {
+  const block = view.state.values[MANAGE_USER_BLOCK_ID];
+  if (!block) {
+    return ack({
+      response_action: "errors",
+      errors: {
+        [MANAGE_USER_BLOCK_ID]: "Block not found in view state values",
+      },
+    });
+  }
+
+  const users = block[MANAGE_USER_SELECT_ACTION_ID]?.selected_users;
 
   const { teamId, conversationId } = JSON.parse(
     view.private_metadata,
@@ -118,7 +126,20 @@ export const manageUsersModalSubmission: Middleware<
   // TODO handle users not in channel
 
   const conversation = await store.get(conversationId);
-  conversation.teams[teamId].members = new Set(users);
+  const displayName = conversation.teams[teamId]?.displayName ?? "";
+  if (!displayName) {
+    return ack({
+      response_action: "errors",
+      errors: {
+        [MANAGE_USER_BLOCK_ID]: "Team not found",
+      },
+    });
+  }
+
+  conversation.teams[teamId] = {
+    displayName,
+    members: new Set(users),
+  };
   await store.set(conversationId, conversation);
 
   await ack();

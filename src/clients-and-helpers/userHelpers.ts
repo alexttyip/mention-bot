@@ -17,7 +17,7 @@ export const getAllUserIdsInChannel = async (
       .then(({ user }) => user),
   );
 
-  let infos = await Promise.all(infoPromises);
+  const infos = await Promise.all(infoPromises);
 
   // Exclude bots and undefined users
   return infos.reduce((acc: string[], user) => {

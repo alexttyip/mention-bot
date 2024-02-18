@@ -1,12 +1,12 @@
 import { SayFn } from "@slack/bolt";
 import { Block, KnownBlock } from "@slack/types";
 
-export type PickButtonPayload = {
+export interface PickButtonPayload {
   triggerTs: string;
   triggerUser?: string;
   pickedUser: string;
   teamId?: string;
-};
+}
 
 export const getSimpleTextBlock = (message: string) => ({
   type: "section",

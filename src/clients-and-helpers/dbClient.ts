@@ -61,7 +61,9 @@ class CosmosDbConvoStore implements ConversationStore<ConversationState> {
 
     void CosmosDbConvoStore.createDatabase(this.client)
       .then(() => CosmosDbConvoStore.createContainer(this.client))
-      .then(() => console.log("💿 Connected to DB"));
+      .then(() => {
+        console.log("💿 Connected to DB");
+      });
   }
 
   private static getDbOption(): CosmosClientOptions {
@@ -118,7 +120,7 @@ class CosmosDbConvoStore implements ConversationStore<ConversationState> {
     return mapDbConversationStateToConversationState(results[0]);
   }
 
-  async set(conversationId: string, value: ConversationState): Promise<any> {
+  async set(conversationId: string, value: ConversationState) {
     return this.client
       .database(databaseId)
       .container(containerId)
