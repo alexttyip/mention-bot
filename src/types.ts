@@ -30,6 +30,5 @@ export type ContextWithConversation = Context &
 
 export const doesContextHaveConversation = (
   context: Context & StringIndexed,
-): context is ContextWithConversation => {
-  return !!context.conversation && !!context.updateConversation;
-};
+): context is ContextWithConversation =>
+  !!context.conversation && !!context.updateConversation;

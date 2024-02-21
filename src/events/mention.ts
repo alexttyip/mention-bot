@@ -1,8 +1,5 @@
 import { Middleware, SayFn, SlackEventMiddlewareArgs } from "@slack/bolt";
-import {
-  ContextWithConversation,
-  doesContextHaveConversation,
-} from "../../types";
+import { ContextWithConversation, doesContextHaveConversation } from "../types";
 import { WebClient } from "@slack/web-api";
 import { pick } from "../actions/pick";
 import { exclude, include, listExcluded } from "../actions/exclude-include";

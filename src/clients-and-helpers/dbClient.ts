@@ -4,7 +4,7 @@ import {
   PartitionKeyKind,
 } from "@azure/cosmos";
 import { ConversationStore } from "@slack/bolt";
-import { ConversationState, DbConversationState, DbTeam } from "../../types";
+import { ConversationState, DbConversationState, DbTeam } from "../types";
 import { uniq } from "lodash";
 
 const endpoint = process.env.DB_ENDPOINT;

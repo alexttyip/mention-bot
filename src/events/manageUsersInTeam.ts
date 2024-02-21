@@ -4,7 +4,7 @@ import {
   SlackActionMiddlewareArgs,
   SlackViewMiddlewareArgs,
 } from "@slack/bolt/dist/types";
-import { doesContextHaveConversation } from "../../types";
+import { doesContextHaveConversation } from "../types";
 import { throwUnexpectedError } from "../clients-and-helpers/errorHandler";
 import { ManageUsersButtonPayload } from "./teams";
 import { ViewSubmitAction } from "@slack/bolt/dist/types/view";

@@ -12,5 +12,8 @@ module.exports = tseslint.config(
         tsconfigRootDir: ".",
       },
     },
+    rules: {
+      "arrow-body-style": ["error"],
+    },
   },
 );

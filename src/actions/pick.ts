@@ -7,7 +7,7 @@ import {
   replyWithChosenUser,
   sayInThread,
 } from "../clients-and-helpers/sayHelpers";
-import { ContextWithConversation, ConversationState } from "../../types";
+import { ContextWithConversation, ConversationState } from "../types";
 import { throwUnexpectedError } from "../clients-and-helpers/errorHandler";
 
 class NoEligibleUsersError extends Error {}

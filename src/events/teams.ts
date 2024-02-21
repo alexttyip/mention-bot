@@ -1,5 +1,5 @@
 import { SayFn } from "@slack/bolt";
-import { ContextWithConversation } from "../../types";
+import { ContextWithConversation } from "../types";
 import {
   getSimpleTextBlock,
   sayInThread,

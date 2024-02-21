@@ -4,7 +4,7 @@ import {
   SlackActionMiddlewareArgs,
 } from "@slack/bolt/dist/types";
 import { PickButtonPayload } from "../clients-and-helpers/sayHelpers";
-import { doesContextHaveConversation } from "../../types";
+import { doesContextHaveConversation } from "../types";
 import { getUsersAndPick } from "../actions/pick";
 import { throwUnexpectedError } from "../clients-and-helpers/errorHandler";
 import { SectionBlock } from "@slack/types/dist/block-kit/blocks";

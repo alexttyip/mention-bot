@@ -1,4 +1,4 @@
-import { ContextWithConversation } from "../../types";
+import { ContextWithConversation } from "../types";
 import { getAllUserIdsInMessage } from "../clients-and-helpers/userHelpers";
 import { WebClient } from "@slack/web-api";
 import { SayFn } from "@slack/bolt";
