@@ -7,7 +7,7 @@ import {
   replyWithChosenUser,
   sayInThread,
 } from "../clients-and-helpers/sayHelpers";
-import { ContextWithConversation, ConversationState } from "../types";
+import { ContextWithConversation } from "../types";
 import { throwUnexpectedError } from "../clients-and-helpers/errorHandler";
 
 class NoEligibleUsersError extends Error {}
@@ -37,13 +37,16 @@ const pickUser = async (
 
 export const getUsersAndPick = async (
   say: SayFn,
-  triggeringUser: string | undefined,
+  triggeringUser: string,
   channel: string,
-  { excluded, teams }: ConversationState,
+  context: ContextWithConversation,
   triggeringTs: string,
   client: WebClient,
   teamId?: string,
 ) => {
+  const {
+    conversation: { excluded, teams },
+  } = context;
   let userIds: string[] = [];
 
   if (!teamId) {
@@ -64,6 +67,7 @@ export const getUsersAndPick = async (
 
     return replyWithChosenUser(
       say,
+      context,
       triggeringUser,
       pickedUser,
       triggeringTs,
@@ -86,10 +90,14 @@ export const pick = async (
   triggeringUser: string | undefined,
   channel: string,
   restOfCommand: string[],
-  { conversation }: ContextWithConversation,
+  context: ContextWithConversation,
   mentionTs: string,
   client: WebClient,
 ) => {
+  if (!triggeringUser) {
+    return throwUnexpectedError(client, channel, mentionTs);
+  }
+
   const flagIdx = restOfCommand.findIndex(
     (word) => word === "-t" || word === "--team",
   );
@@ -100,7 +108,7 @@ export const pick = async (
     say,
     triggeringUser,
     channel,
-    conversation,
+    context,
     mentionTs,
     client,
     team,

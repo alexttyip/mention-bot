@@ -13,7 +13,8 @@ module.exports = tseslint.config(
       },
     },
     rules: {
-      "arrow-body-style": ["error"],
+      "arrow-body-style": 2,
+      "object-shorthand": 2,
     },
   },
 );

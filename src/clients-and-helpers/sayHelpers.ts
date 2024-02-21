@@ -1,9 +1,10 @@
 import { SayFn } from "@slack/bolt";
 import { Block, KnownBlock } from "@slack/types";
+import { ContextWithConversation } from "../types";
 
 export interface PickButtonPayload {
   triggerTs: string;
-  triggerUser?: string;
+  triggerUser: string;
   pickedUser: string;
   teamId?: string;
 }
@@ -29,9 +30,10 @@ export const sayInThread = (
     text: "Back-up text",
   });
 
-export const replyWithChosenUser = (
+export const replyWithChosenUser = async (
   say: SayFn,
-  triggerUser: string | undefined,
+  { conversation, updateConversation }: ContextWithConversation,
+  triggerUser: string,
   pickedUser: string,
   triggerTs: string,
   teamId: string | undefined,
@@ -43,7 +45,7 @@ export const replyWithChosenUser = (
     teamId,
   };
 
-  return sayInThread(say, triggerTs, [
+  await sayInThread(say, triggerTs, [
     getSimpleTextBlock(`<@${pickedUser}> you're up!`),
     {
       type: "actions",
@@ -61,4 +63,15 @@ export const replyWithChosenUser = (
       ],
     },
   ]);
+
+  return updateConversation({
+    ...conversation,
+    history: conversation.history.concat([
+      {
+        triggerUser,
+        pickedUser,
+        timestamp: Date.now(),
+      },
+    ]),
+  });
 };

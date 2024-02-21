@@ -71,7 +71,7 @@ export const reRoll: Middleware<
     say,
     triggerUser,
     channel,
-    context.conversation,
+    context,
     triggerTs,
     client,
     teamId,

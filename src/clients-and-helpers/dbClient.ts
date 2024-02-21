@@ -16,7 +16,7 @@ const partitionKey = { kind: PartitionKeyKind.Hash, paths: ["/id"] };
 
 const mapConversationStateToDbConversationState = (
   conversationId: string,
-  { excluded, teams }: ConversationState,
+  { excluded, teams, history }: ConversationState,
 ): DbConversationState => ({
   id: conversationId,
   excluded: uniq(excluded),
@@ -30,12 +30,18 @@ const mapConversationStateToDbConversationState = (
     }),
     {},
   ),
+  history,
 });
 
 const mapDbConversationStateToConversationState = ({
   excluded,
   teams,
-}: DbConversationState): ConversationState => ({ excluded, teams });
+  history = [],
+}: DbConversationState): ConversationState => ({
+  excluded,
+  teams,
+  history,
+});
 
 class CosmosDbConvoStore implements ConversationStore<ConversationState> {
   private readonly client: CosmosClient;
@@ -71,7 +77,7 @@ class CosmosDbConvoStore implements ConversationStore<ConversationState> {
   private static async createContainer(client: CosmosClient) {
     return client.database(databaseId).containers.createIfNotExists({
       id: containerId,
-      partitionKey: partitionKey,
+      partitionKey,
     });
   }
 
@@ -88,13 +94,11 @@ class CosmosDbConvoStore implements ConversationStore<ConversationState> {
       ],
     };
 
-    const { resources: results } = (await this.client
+    const { resources: results } = await this.client
       .database(databaseId)
       .container(containerId)
-      .items.query(querySpec)
-      .fetchAll()) as {
-      resources: DbConversationState[];
-    };
+      .items.query<DbConversationState>(querySpec)
+      .fetchAll();
 
     const result = results[0];
 
@@ -102,6 +106,7 @@ class CosmosDbConvoStore implements ConversationStore<ConversationState> {
       return {
         excluded: [],
         teams: {},
+        history: [],
       };
     }
 
