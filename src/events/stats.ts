@@ -7,7 +7,10 @@ import {
   SlackActionMiddlewareArgs,
 } from "@slack/bolt/dist/types";
 import { sayInThread } from "../clients-and-helpers/sayHelpers";
-import { calculateUserTriggerCount } from "../clients-and-helpers/statsHelpers";
+import {
+  calculateUserPickedCount,
+  calculateUserTriggerCount,
+} from "../clients-and-helpers/statsHelpers";
 import { doesContextHaveConversation } from "../types";
 
 interface StatsButtonPayload {
@@ -114,6 +117,61 @@ export const showUserTriggerCountStats: Middleware<
             {
               type: "text",
               text: "Here's some stats on how many times each user has picked someone:",
+            },
+          ],
+        },
+        {
+          type: "rich_text_preformatted",
+          border: 0,
+          elements: [
+            {
+              type: "text",
+              text: formattedStats,
+            },
+          ],
+        },
+      ],
+    },
+  ]);
+};
+
+export const showUserPickedCountStats: Middleware<
+  SlackActionMiddlewareArgs<BlockAction>
+> = async ({ ack, say, body, context, client }) => {
+  await ack();
+
+  const action = body.actions[0];
+
+  if (!action || action.type !== "button") {
+    // TODO well, shit
+    return;
+  }
+
+  if (!doesContextHaveConversation(context)) {
+    // TODO well, shit
+    return;
+  }
+
+  const { mentionTs } = JSON.parse(action.value) as StatsButtonPayload;
+
+  const stats = await calculateUserPickedCount(
+    context.conversation.history,
+    client,
+  );
+  const formattedStats = stats.length
+    ? stats.map(({ userName, count }) => `${userName}: ${count}`).join("\n")
+    : "No stats yet";
+
+  await sayInThread(say, mentionTs, [
+    {
+      type: "rich_text",
+      elements: [
+        {
+          type: "rich_text_section",
+          elements: [
+            {
+              type: "text",
+              text: "Here's some stats on how many times each user has been picked:",
             },
           ],
         },
