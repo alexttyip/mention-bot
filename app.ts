@@ -7,6 +7,7 @@ import {
   manageUsersInTeam,
   manageUsersModalSubmission,
 } from "./src/events/manageUsersInTeam";
+import { showUserTriggerCountStats } from "./src/events/stats";
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -19,6 +20,13 @@ const app = new App({
 app.event("app_mention", mentionEvent);
 app.action("re_roll_button_click", reRoll);
 app.action("manage_users_button_click", manageUsersInTeam);
+
+app.action("stats_user_trigger_count_btn_click", showUserTriggerCountStats);
+app.action("stats_user_picked_count_btn_click", showUserTriggerCountStats); // TODO
+app.action(
+  "stats_picking_to_picked_ratio_btn_click",
+  showUserTriggerCountStats,
+); // TODO
 
 app.view("manage_users_modal_submission", manageUsersModalSubmission);
 

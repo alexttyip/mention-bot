@@ -6,6 +6,7 @@ import {
 } from "../clients-and-helpers/sayHelpers";
 import { KnownBlock } from "@slack/types";
 import { WebClient } from "@slack/web-api";
+import { getUserNamesByIds } from "../clients-and-helpers/userHelpers";
 
 export interface ManageUsersButtonPayload {
   teamId: string;
@@ -98,14 +99,7 @@ export const showTeam = async (
     ]);
   }
 
-  const namePromises: Promise<string | undefined>[] = Array.from(members).map(
-    (user: string) =>
-      client.users
-        .info({ user })
-        .then(({ user }) => user?.profile?.display_name),
-  );
-
-  const names = await Promise.all(namePromises);
+  const names = await getUserNamesByIds(client, members);
 
   return sayInThread(say, mentionTs, [
     getSimpleTextBlock(

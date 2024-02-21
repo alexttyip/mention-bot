@@ -1,4 +1,5 @@
 import { WebClient } from "@slack/web-api";
+import { isString } from "lodash";
 
 export const getAllUserIdsInChannel = async (
   channel: string,
@@ -35,12 +36,20 @@ export const getAllUserIdsInChannel = async (
   }, []);
 };
 
-export function getAllUserIdsInMessage(restOfCommand: string[]) {
-  return restOfCommand.reduce((acc: string[], word) => {
+export const getAllUserIdsInMessage = (restOfCommand: string[]) =>
+  restOfCommand.reduce((acc: string[], word) => {
     if (word.match(/^<@[A-Z0-9]*>/)) {
       acc.push(word.substring(2, word.length - 1));
     }
 
     return acc;
   }, []);
-}
+
+export const getUserNamesByIds = (
+  client: WebClient,
+  userIds: string[],
+): Promise<string[]> =>
+  Promise.all(userIds.map((user: string) => client.users.info({ user }))).then(
+    (users) =>
+      users.map(({ user }) => user?.profile?.display_name).filter(isString),
+  );

@@ -8,6 +8,7 @@ import {
   throwUserError,
 } from "../clients-and-helpers/errorHandler";
 import { createTeam, showTeam } from "./teams";
+import { showStats } from "./stats";
 
 interface MentionParams {
   event: {
@@ -59,6 +60,9 @@ const handleMention = async ({
       break;
     case "show":
       await showTeam(say, rest, context, mentionTs, client);
+      break;
+    case "stats":
+      await showStats(user, channel, mentionTs, client);
       break;
     // case "delete":
     //   throw "TODO delete list";
