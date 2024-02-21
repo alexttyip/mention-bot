@@ -46,7 +46,7 @@ export const manageUsersInTeam: Middleware<
   }
 
   const { teamId } = JSON.parse(action.value) as ManageUsersButtonPayload;
-  const members = context.conversation.teams[teamId]?.members ?? new Set();
+  const members = context.conversation.teams[teamId]?.members ?? [];
 
   const payload: ManageUsersModalSubmissionPayload = {
     teamId,
@@ -138,7 +138,7 @@ export const manageUsersModalSubmission: Middleware<
 
   conversation.teams[teamId] = {
     displayName,
-    members: new Set(users),
+    members: users,
   };
   await store.set(conversationId, conversation);
 

@@ -35,10 +35,12 @@ export const getAllUserIdsInChannel = async (
   }, []);
 };
 
-export function* getAllUserIdsInMessage(restOfCommand: string[]) {
-  for (const word of restOfCommand) {
+export function getAllUserIdsInMessage(restOfCommand: string[]) {
+  return restOfCommand.reduce((acc: string[], word) => {
     if (word.match(/^<@[A-Z0-9]*>/)) {
-      yield word.substring(2, word.length - 1);
+      acc.push(word.substring(2, word.length - 1));
     }
-  }
+
+    return acc;
+  }, []);
 }

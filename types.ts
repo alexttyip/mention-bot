@@ -3,7 +3,7 @@ import { StringIndexed } from "@slack/bolt/dist/types/helpers";
 
 export interface Team {
   displayName: string;
-  members: Set<string>;
+  members: string[];
 }
 
 export interface DbTeam {
@@ -12,7 +12,7 @@ export interface DbTeam {
 }
 
 export interface ConversationState {
-  excluded: Set<string>;
+  excluded: string[];
   teams: Record<string, Team>;
 }
 

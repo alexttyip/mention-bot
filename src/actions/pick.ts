@@ -15,10 +15,10 @@ class NoEligibleUsersError extends Error {}
 const pickUser = async (
   userIds: string[],
   triggeringUser: string | undefined,
-  excluded: Set<string>,
+  excluded: string[],
 ): Promise<string> => {
   const eligibleUsers = userIds.filter(
-    (userId) => userId !== triggeringUser && !excluded.has(userId),
+    (userId) => userId !== triggeringUser && !excluded.includes(userId),
   );
 
   if (eligibleUsers.length === 0) {

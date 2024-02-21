@@ -55,7 +55,7 @@ export const createTeam = async (
 
   teams[teamId] = {
     displayName: teamDisplayName,
-    members: new Set(),
+    members: [],
   };
 
   await context.updateConversation({
@@ -91,7 +91,7 @@ export const showTeam = async (
 
   const { displayName, members } = team;
 
-  if (members.size === 0) {
+  if (members.length === 0) {
     return sayInThread(say, mentionTs, [
       getSimpleTextBlock("No users in this team"),
       manageUsersButton,

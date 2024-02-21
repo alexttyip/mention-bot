@@ -16,9 +16,7 @@ export const exclude = async (
 ) => {
   const { conversation } = context;
 
-  for (const userId of getAllUserIdsInMessage(restOfCommand)) {
-    conversation.excluded.add(userId);
-  }
+  conversation.excluded.push(...getAllUserIdsInMessage(restOfCommand));
 
   await context.updateConversation(conversation);
 
@@ -37,10 +35,11 @@ export const include = async (
   client: WebClient,
 ) => {
   const { conversation } = context;
+  const allUserIdsInMessage = getAllUserIdsInMessage(restOfCommand);
 
-  for (const userId of getAllUserIdsInMessage(restOfCommand)) {
-    conversation.excluded.delete(userId);
-  }
+  conversation.excluded = conversation.excluded.filter(
+    (userId) => !allUserIdsInMessage.includes(userId),
+  );
 
   await context.updateConversation(conversation);
 
@@ -59,7 +58,7 @@ export const listExcluded = async (
 ): Promise<void> => {
   const { excluded } = conversation;
 
-  if (excluded.size === 0) {
+  if (excluded.length === 0) {
     return void sayInThread(say, mentionTs, [
       getSimpleTextBlock("No excluded users"),
     ]);

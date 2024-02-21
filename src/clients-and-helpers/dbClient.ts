@@ -4,12 +4,8 @@ import {
   PartitionKeyKind,
 } from "@azure/cosmos";
 import { ConversationStore } from "@slack/bolt";
-import {
-  ConversationState,
-  DbConversationState,
-  DbTeam,
-  Team,
-} from "../../types";
+import { ConversationState, DbConversationState, DbTeam } from "../../types";
+import { uniq } from "lodash";
 
 const endpoint = process.env.DB_ENDPOINT;
 const key = process.env.DB_KEY;
@@ -23,13 +19,13 @@ const mapConversationStateToDbConversationState = (
   { excluded, teams }: ConversationState,
 ): DbConversationState => ({
   id: conversationId,
-  excluded: Array.from(excluded),
-  teams: Object.keys(teams).reduce(
-    (acc: Record<string, DbTeam>, teamId) => ({
+  excluded: uniq(excluded),
+  teams: Object.entries(teams).reduce(
+    (acc: Record<string, DbTeam>, [teamId, { displayName, members }]) => ({
       ...acc,
       [teamId]: {
-        displayName: teams[teamId].displayName,
-        members: Array.from(teams[teamId].members),
+        displayName,
+        members: uniq(members),
       },
     }),
     {},
@@ -39,19 +35,7 @@ const mapConversationStateToDbConversationState = (
 const mapDbConversationStateToConversationState = ({
   excluded,
   teams,
-}: DbConversationState): ConversationState => ({
-  excluded: new Set(excluded),
-  teams: Object.keys(teams).reduce(
-    (acc: Record<string, Team>, teamId) => ({
-      ...acc,
-      [teamId]: {
-        displayName: teams[teamId].displayName,
-        members: new Set(teams[teamId].members),
-      },
-    }),
-    {},
-  ),
-});
+}: DbConversationState): ConversationState => ({ excluded, teams });
 
 class CosmosDbConvoStore implements ConversationStore<ConversationState> {
   private readonly client: CosmosClient;
@@ -104,20 +88,24 @@ class CosmosDbConvoStore implements ConversationStore<ConversationState> {
       ],
     };
 
-    const { resources: results } = await this.client
+    const { resources: results } = (await this.client
       .database(databaseId)
       .container(containerId)
       .items.query(querySpec)
-      .fetchAll();
+      .fetchAll()) as {
+      resources: DbConversationState[];
+    };
 
-    if (results.length === 0) {
+    const result = results[0];
+
+    if (!result) {
       return {
-        excluded: new Set(),
+        excluded: [],
         teams: {},
       };
     }
 
-    return mapDbConversationStateToConversationState(results[0]);
+    return mapDbConversationStateToConversationState(result);
   }
 
   async set(conversationId: string, value: ConversationState) {
