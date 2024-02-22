@@ -18,7 +18,6 @@ Pickir will never pick the picker.
 Pick messages come with a re-roll button, where you can ask Pickir to pick again.
 Re-rolls respect any pick rules, so it will never pick the user who send the `@Pickir pick ...` command.
 
-
 ### Exclude
 
 Exclude the user from *any* picks.
@@ -29,7 +28,6 @@ Note that by default all users are included.
 #### Example
 
 `@Pickir exclude @Jonathan Price`
-
 
 ### Include
 
@@ -51,6 +49,14 @@ List all excluded users.
 
 `@Pickir list-excluded`
 
+### Show statistics
+
+Show statistics for the current channel.
+
+#### Example
+
+`@Pickir stats`
+
 ## Error handling
 
 ### User errors
@@ -63,7 +69,5 @@ Pickir will react to unexpected errors with the `:confusedparrot:` emoji.
 
 ## What's next
 
-- Sub-teams
+- Improved stats
 - Exclude until date
-- Stats
-
