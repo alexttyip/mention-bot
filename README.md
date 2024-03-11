@@ -2,72 +2,26 @@
 
 ## Usage
 
-### Pick
-
-Pick a non-excluded user from the channel.
-Pickir will never pick the picker.
-
-`@Pickir pick <message>`
-
-#### Example
-
-`@Pickir pick [PR] TFGM-123: This is a test ticket`
-
-#### Re-roll
-
-Pick messages come with a re-roll button, where you can ask Pickir to pick again.
-Re-rolls respect any pick rules, so it will never pick the user who send the `@Pickir pick ...` command.
-
-### Exclude
-
-Exclude the user from *any* picks.
-Note that by default all users are included.
-
-`@Pickir [exclude | rm] @user`
-
-#### Example
-
-`@Pickir exclude @Jonathan Price`
-
-### Include
-
-Re-include the user from pick messages.
-
-`@Pickir [include | i] @user`
-
-#### Example
-
-`@Pickir include @Jonathan Price`
-
-### List excluded users
-
-List all excluded users.
-
-`@Pickir [list-excluded | lse]`
-
-#### Example
-
-`@Pickir list-excluded`
-
-### Show statistics
-
-Show statistics for the current channel.
-
-#### Example
-
-`@Pickir stats`
+| Command | Description | Example |
+| --- | --- | --- |
+| `pick <message>` | Pick a non-excluded user from the channel.<br>Pickir will never pick the picker. | `@Pickir pick TFGM-123: This is a test` |
+| `[exclude \| rm] @User` | Exclude the user from **all** picks.<br>Note that by default all users are included. | `@Pickir exclude @Alex Yip` |
+| `[include \| i] @User` | Re-include the user from picks. | `@Pickir include @Alex Yip` |
+| `[list-excluded \| lse]` | List and manage excluded users. | `@Pickir lse` |
+| `create <team name>` | Create team with the given team name and manage members.<br>Team names are case-insensitive. | `@Pickir create a-team` |
+| `show <team name>` | Show team and manage members. | `@Pickir show a-team` |
+| `stats` | This is a WIP feature.<br>Show statistics for the current channel.  | `@Pickir stats` |
 
 ## Error handling
 
-### User errors
-
-Pickir will react to user errors with the `:user_error:` emoji.
-
-### Unexpected errors
-
-Pickir will react to unexpected errors with the `:confusedparrot:` emoji.
+| Pickir's reaction | Description |
+| --- | --- |
+| `:user_error:` | User error |
+| `:confusedparrot:` | Unexpected error|
 
 ## What's next
 
+- Avoid picking recently picked users
 - Improved stats
 - Exclude until date
+- Delete team
