@@ -42,7 +42,7 @@ export const reRoll: Middleware<
   }
 
   // TODO exclude originally picked user w/ pickedUser?
-  const { triggerTs, triggerUser, teamId } = JSON.parse(
+  const { triggerTs, triggerUser, teamId, excludedInPick } = JSON.parse(
     action.value,
   ) as PickButtonPayload;
 
@@ -74,6 +74,7 @@ export const reRoll: Middleware<
     context,
     triggerTs,
     client,
+    excludedInPick,
     teamId,
   );
 };
