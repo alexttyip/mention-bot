@@ -42,6 +42,7 @@ export const getUsersAndPick = async (
   context: ContextWithConversation,
   triggeringTs: string,
   client: WebClient,
+  excludedInPick: string[],
   teamId?: string,
 ) => {
   const {
@@ -62,8 +63,14 @@ export const getUsersAndPick = async (
     userIds = [...team.members];
   }
 
+  const allExcludedMembers = [...excludedInPick, ...excluded];
+
   try {
-    const pickedUser = await pickUser(userIds, triggeringUser, excluded);
+    const pickedUser = await pickUser(
+      userIds,
+      triggeringUser,
+      allExcludedMembers,
+    );
 
     return replyWithChosenUser(
       say,
@@ -71,6 +78,7 @@ export const getUsersAndPick = async (
       triggeringUser,
       pickedUser,
       triggeringTs,
+      excludedInPick,
       teamId,
     );
   } catch (error) {
@@ -98,11 +106,26 @@ export const pick = async (
     return throwUnexpectedError(client, channel, mentionTs);
   }
 
-  const flagIdx = restOfCommand.findIndex(
+  const teamFlagIdx = restOfCommand.findIndex(
     (word) => word === "-t" || word === "--team",
   );
+
+  const excludeTagIdx = restOfCommand.findIndex(
+    (word) => word === "-e" || word === "--exclude",
+  );
+
   const team =
-    flagIdx !== -1 ? restOfCommand.slice(flagIdx + 1).join(" ") : undefined;
+    teamFlagIdx !== -1
+      ? restOfCommand
+          .slice(
+            teamFlagIdx + 1,
+            excludeTagIdx !== -1 ? excludeTagIdx : undefined,
+          )
+          .join(" ")
+      : undefined;
+
+  const excludedInPick =
+    excludeTagIdx !== -1 ? restOfCommand.slice(excludeTagIdx + 1) : [];
 
   return getUsersAndPick(
     say,
@@ -111,6 +134,7 @@ export const pick = async (
     context,
     mentionTs,
     client,
+    excludedInPick,
     team,
   );
 };

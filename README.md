@@ -12,6 +12,15 @@
 | `show <team name>` | Show team and manage members. | `@Pickir show a-team` |
 | `stats` | This is a WIP feature.<br>Show statistics for the current channel.  | `@Pickir stats` |
 
+## Extra flags for picks
+Note that one must currently call the exclude tag after the team tag, if both are provided.
+
+| flag                                      | Description                  |
+|-------------------------------------------|------------------------------|
+| `--team <team name>`, (`-t`)              | Only pick from specific team |
+| `--exclude @Ned Reid @Sned Sreid`, (`-e`) | Exclude users                |
+
+
 ## Error handling
 
 | Pickir's reaction | Description |

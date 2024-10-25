@@ -6,6 +6,7 @@ export interface PickButtonPayload {
   triggerTs: string;
   triggerUser: string;
   pickedUser: string;
+  excludedInPick: string[];
   teamId?: string;
 }
 
@@ -36,6 +37,7 @@ export const replyWithChosenUser = async (
   triggerUser: string,
   pickedUser: string,
   triggerTs: string,
+  excludedInPick: string[],
   teamId: string | undefined,
 ) => {
   const payload: PickButtonPayload = {
@@ -43,6 +45,7 @@ export const replyWithChosenUser = async (
     triggerUser,
     pickedUser,
     teamId,
+    excludedInPick,
   };
 
   await sayInThread(say, triggerTs, [
