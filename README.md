@@ -28,6 +28,9 @@ Note that one must currently call the exclude tag after the team tag, if both ar
 | `:user_error:` | User error |
 | `:confusedparrot:` | Unexpected error|
 
+## Re-rolling
+The picker has the ability to re-roll by clicking the "Re-roll" button under the last picked user in the slack thread. Re-rolling will exclude previously-picked users, until there are no more users to pick.
+
 ## What's next
 
 - Avoid picking recently picked users
