@@ -1,7 +1,10 @@
 import { getRandomInteger } from "../clients-and-helpers/randomNumberClient";
 import { SayFn } from "@slack/bolt";
 import { WebClient } from "@slack/web-api";
-import { getAllUserIdsInChannel } from "../clients-and-helpers/userHelpers";
+import {
+  getAllUserIdsInChannel,
+  getAllUserIdsInMessage,
+} from "../clients-and-helpers/userHelpers";
 import {
   getSimpleTextBlock,
   replyWithChosenUser,
@@ -125,7 +128,9 @@ export const pick = async (
       : undefined;
 
   const excludedInPick =
-    excludeTagIdx !== -1 ? restOfCommand.slice(excludeTagIdx + 1) : [];
+    excludeTagIdx !== -1
+      ? getAllUserIdsInMessage(restOfCommand.slice(excludeTagIdx + 1))
+      : [];
 
   return getUsersAndPick(
     say,
