@@ -41,10 +41,10 @@ export const reRoll: Middleware<
     return throwUnexpectedError(client, channel, body.message.ts);
   }
 
-  // TODO exclude originally picked user w/ pickedUser?
-  const { triggerTs, triggerUser, teamId, excludedInPick } = JSON.parse(
-    action.value,
-  ) as PickButtonPayload;
+  const { triggerTs, triggerUser, teamId, excludedInPick, pickedUser } =
+    JSON.parse(action.value) as PickButtonPayload;
+
+  const excludedUsersAndPickedUser = [...excludedInPick, pickedUser];
 
   // Hide re-roll button
   if (Array.isArray(blocks) && isSectionBlock(blocks[0])) {
@@ -74,7 +74,7 @@ export const reRoll: Middleware<
     context,
     triggerTs,
     client,
-    excludedInPick,
+    excludedUsersAndPickedUser,
     teamId,
   );
 };
